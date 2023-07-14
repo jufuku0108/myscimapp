@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace MyScimApp.Models
 {
+    /*
     public class AccessLog
     {
         public int AccessLogId { get; set; }
@@ -12,9 +13,11 @@ namespace MyScimApp.Models
         public string Type { get; set; }
         public string HttpMethod { get; set; }
         public string StatusCode { get; set; }
+        public string IpAddress { get; set; }
         public string AbsoluteUrl { get; set; }
         public string Headers { get; set; }
         public string Body { get; set; }
 
     }
+     */
 }

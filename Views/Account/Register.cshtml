@@ -9,151 +9,19 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
     <title>Register</title>
+    
     <link href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round" rel="stylesheet">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-
     <link rel="stylesheet" href="~/css/bootstrap-social.css" />
+    <link rel="stylesheet" href="~/css/customlayout.css" />
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
-    <style type="text/css">
-        .loginprovider {
-            color: #212bef;
-        }
-
-        h5, h3 {
-            text-align: left;
-        }
-
-        body {
-            background-color: #c2c1c1;
-            font-family: 'Varela Round', sans-serif;
-        }
-
-        .modal-login {
-            color: #636363;
-            width: 350px;
-        }
-
-            .modal-login .modal-content {
-                padding: 20px;
-                border-radius: 5px;
-                border: none;
-            }
-
-            .modal-login .modal-header {
-                border-bottom: none;
-                position: relative;
-                justify-content: center;
-            }
-
-            .modal-login h4 {
-                text-align: center;
-                font-size: 26px;
-            }
-
-            .modal-login  {
-                position: relative;
-            }
-            .form-group {
-                position: relative;
-                width: 230px;
-            }
-            .modal-login i {
-                position: absolute;
-                left: 13px;
-                top: 11px;
-                font-size: 18px;
-            }
-
-        .email {
-            width: 240px;
-        }
-
-            .modal-login .form-control:focus {
-                border-color: #12b5e5;
-            }
-
-            .modal-login .form-control, .modal-login {
-                min-height: 40px;
-                border-radius: 3px;
-                transition: all 0.5s;
-            }
-
-                .modal-login .close {
-                    position: absolute;
-                    top: -5px;
-                    right: -5px;
-                }
-
-                .modal-login input[type="checkbox"] {
-                    margin-top: 1px;
-                }
-
-                .modal-login .forgot-link {
-                    color: #12b5e5;
-                    float: right;
-                }
-
-                .modal-login .btn-lg:hover, .modal-login .btn:focus {
-                    background: #10a3cd;
-                }
-
-                .modal-login .modal-footer {
-                    color: #999;
-                    border: none;
-                    text-align: center;
-                    border-radius: 5px;
-                    font-size: 13px;
-                    margin-top: -20px;
-                    justify-content: center;
-                }
-
-                    .modal-login .modal-footer a {
-                        color: #12b5e5;
-                    }
-
-        .trigger-btn {
-            display: inline-block;
-            margin: 100px auto;
-        }
-
-        .btn-facebook {
-            color: floralwhite;
-            background-color: #2d4373;
-        }
-
-            .btn-facebook:hover {
-                background-color: #3314a1
-            }
-
-        .btn-microsoft {
-            color: antiquewhite;
-            background-color: #2672EC;
-        }
-
-            .btn-microsoft:hover {
-                background-color: #10279a
-            }
-
-        .btn-openid {
-            color: antiquewhite;
-            background-color: #F7931E;
-        }
-
-            .btn-openid:hover {
-                background-color: #ef6408;
-            }
-        .customlabel {
-            font-size: small;
-        }
-       .back-link {
-            color: #12b5e5;
-            float: left;
-        }
-    </style>
+    
 </head>
 <body>
 
@@ -168,19 +36,22 @@
                         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
                         @Html.AntiForgeryToken()
 
+                        <label class="customlabel">Email address / UserName</label>
                         <div class="form-group">
-                            <label class="customlabel">Email address / UserName</label>
+                            <i class="fa fa-user"></i>
                             <input type="text" value=@Model.Username name="Username" class="form-control email" spellcheck="false">
                         </div>
 
+                        <label class="customlabel">Password</label>
                         <div class="form-group">
-                            <label class="customlabel">Password</label>
+                            <i class="fa fa-lock"></i>
                             <input type="password" value=@Model.Password name="Password" class="form-control email" spellcheck="false">
                         </div>
 
 
+                        <label class="customlabel">ConfirmPassword</label>
                         <div class="form-group">
-                            <label class="customlabel">ConfirmPassword</label>
+                            <i class="fa fa-lock"></i>
                             <input type="password" value=@Model.ConfirmPassword name="ConfirmPassword" class="form-control email" spellcheck="false">
                             <span asp-validation-for="@Model.ConfirmPassword" class="text-danger"></span>
                         </div>

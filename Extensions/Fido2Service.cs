@@ -20,12 +20,12 @@ namespace MyScimApp.Extensions
         }
         public async Task<List<Fido2StoredCredential>> GetFido2StoredCredentialsByUserNameAsync(string userName)
         {
-            var fido2StoredCredentials =  await _applicationDbContext.fido2StoredCredentials.Where(c => c.UserName == userName).ToListAsync();
+            var fido2StoredCredentials =  await _applicationDbContext.Fido2StoredCredentials.Where(c => c.UserName == userName).ToListAsync();
             return fido2StoredCredentials;
         }
         public void RemoveFido2StoredCredentialsByUserNameAsync(string userName)
         {
-            var fido2StoredCredentials =  _applicationDbContext.fido2StoredCredentials.Where(c => c.UserName == userName).ToList();
+            var fido2StoredCredentials =  _applicationDbContext.Fido2StoredCredentials.Where(c => c.UserName == userName).ToList();
             foreach(var fido2StoredCredential in fido2StoredCredentials)
             {
                 _applicationDbContext.Remove(fido2StoredCredential);
@@ -35,19 +35,19 @@ namespace MyScimApp.Extensions
         public async Task<Fido2StoredCredential> GetFido2StoredCredentialsByCredentialIdAsync(byte[] credentialId)
         {
             var credentialIdString = Base64Url.Encode(credentialId);
-            var fido2StoredCredential = await _applicationDbContext.fido2StoredCredentials.Where(c => c.DescriptorJson.Contains(credentialIdString)).FirstOrDefaultAsync();
+            var fido2StoredCredential = await _applicationDbContext.Fido2StoredCredentials.Where(c => c.DescriptorJson.Contains(credentialIdString)).FirstOrDefaultAsync();
             return fido2StoredCredential;
         }
         public async Task<List<Fido2StoredCredential>> GetFido2StoredCredentialsByUserHandleAsync(byte[] userHandle)
         {
-            var fido2StoredCredentials = await _applicationDbContext.fido2StoredCredentials.Where(c => c.UserHandle == userHandle).ToListAsync();
+            var fido2StoredCredentials = await _applicationDbContext.Fido2StoredCredentials.Where(c => c.UserHandle == userHandle).ToListAsync();
             return fido2StoredCredentials;
         }
 
         public async Task<List<Fido2User>> GetFido2UsersByCredentialIdAsync(byte[] credentialId)
         {
             var credentialIdString = Base64Url.Encode(credentialId);
-            var fido2StoredCredential = await _applicationDbContext.fido2StoredCredentials.Where(c => c.DescriptorJson.Contains(credentialIdString)).FirstOrDefaultAsync();
+            var fido2StoredCredential = await _applicationDbContext.Fido2StoredCredentials.Where(c => c.DescriptorJson.Contains(credentialIdString)).FirstOrDefaultAsync();
             if(fido2StoredCredential == null)
             {
                 return new List<Fido2User>();
@@ -68,13 +68,13 @@ namespace MyScimApp.Extensions
 
         public void AddFido2StoredCredential(Fido2StoredCredential fido2StoredCredential)
         {
-            _applicationDbContext.fido2StoredCredentials.Add(fido2StoredCredential);
+            _applicationDbContext.Fido2StoredCredentials.Add(fido2StoredCredential);
             _applicationDbContext.SaveChanges();
         }
         public async Task UpdateFido2StoredCredentialCounter(byte[] credentialId, uint signatureCounter)
         {
             var credentialIdString = Base64Url.Encode(credentialId);
-            var fido2StoredCredential = await _applicationDbContext.fido2StoredCredentials.Where(c => c.DescriptorJson.Contains(credentialIdString)).FirstOrDefaultAsync();
+            var fido2StoredCredential = await _applicationDbContext.Fido2StoredCredentials.Where(c => c.DescriptorJson.Contains(credentialIdString)).FirstOrDefaultAsync();
             fido2StoredCredential.SignatureCounter = signatureCounter;
             await _applicationDbContext.SaveChangesAsync();
         }

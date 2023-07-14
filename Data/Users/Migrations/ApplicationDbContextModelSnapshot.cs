@@ -15,7 +15,7 @@ namespace MyScimApp.Data.Users.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "3.0.1")
+                .HasAnnotation("ProductVersion", "3.1.18")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
@@ -150,39 +150,6 @@ namespace MyScimApp.Data.Users.Migrations
                     b.ToTable("AspNetUserTokens");
                 });
 
-            modelBuilder.Entity("MyScimApp.Models.AccessLog", b =>
-                {
-                    b.Property<int>("AccessLogId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("AbsoluteUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Body")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("DateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Headers")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HttpMethod")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StatusCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Type")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("AccessLogId");
-
-                    b.ToTable("accessLogs");
-                });
-
             modelBuilder.Entity("MyScimApp.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -235,9 +202,6 @@ namespace MyScimApp.Data.Users.Migrations
                         .HasColumnType("nvarchar(256)")
                         .HasMaxLength(256);
 
-                    b.Property<string>("UserType")
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -249,26 +213,6 @@ namespace MyScimApp.Data.Users.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.AuthenticationCode", b =>
-                {
-                    b.Property<Guid>("AuthenticationCodeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("Active")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("ExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("AuthenticationCodeId");
-
-                    b.ToTable("authenticationCodes");
                 });
 
             modelBuilder.Entity("MyScimApp.Models.Fido2StoredCredential", b =>
@@ -307,224 +251,31 @@ namespace MyScimApp.Data.Users.Migrations
 
                     b.HasKey("Fido2StoredCredentialId");
 
-                    b.ToTable("fido2StoredCredentials");
+                    b.ToTable("Fido2StoredCredential");
                 });
 
-            modelBuilder.Entity("MyScimApp.Models.ScimGroup", b =>
+            modelBuilder.Entity("MyScimApp.Models.Saml2Partner", b =>
                 {
-                    b.Property<string>("ScimGroupId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("DisplayName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ExternalId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("ScimGroupId");
-
-                    b.ToTable("scimGroups");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimGroupMember", b =>
-                {
-                    b.Property<int>("ScimGroupMemberId")
+                    b.Property<int>("Saml2PartnerId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<string>("Display")
+                    b.Property<string>("Issuer")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Reference")
+                    b.Property<string>("MetadataUrl")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ScimGroupId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Value")
+                    b.Property<string>("RegisteredBy")
                         .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("ScimGroupMemberId");
-
-                    b.HasIndex("ScimGroupId");
-
-                    b.ToTable("scimGroupMembers");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimGroupMetaData", b =>
-                {
-                    b.Property<int>("ScimGroupMetaDataId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("LastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Location")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ResourceType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ScimGroupId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Version")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("ScimGroupMetaDataId");
-
-                    b.HasIndex("ScimGroupId")
-                        .IsUnique()
-                        .HasFilter("[ScimGroupId] IS NOT NULL");
-
-                    b.ToTable("scimGroupMetaDatas");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUser", b =>
-                {
-                    b.Property<int>("ScimUserId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<bool>("Active")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("DisplayName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ExternalId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("ScimUserId");
-
-                    b.HasIndex("ApplicationUserId");
-
-                    b.ToTable("scimUsers");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUserEmail", b =>
-                {
-                    b.Property<int>("ScimUserEmailId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<bool>("Primary")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("ScimUserId")
-                        .HasColumnType("int");
 
                     b.Property<string>("Type")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
+                    b.HasKey("Saml2PartnerId");
 
-                    b.HasKey("ScimUserEmailId");
-
-                    b.HasIndex("ScimUserId");
-
-                    b.ToTable("scimUserEmails");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUserMetaData", b =>
-                {
-                    b.Property<int>("ScimUserMetaDataId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("LastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Location")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ResourceType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ScimUserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Version")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("ScimUserMetaDataId");
-
-                    b.HasIndex("ScimUserId")
-                        .IsUnique();
-
-                    b.ToTable("scimUserMetaDatas");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUserName", b =>
-                {
-                    b.Property<int>("ScimUserNameId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("FamilyName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Formatted")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GivenName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ScimUserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ScimUserNameId");
-
-                    b.HasIndex("ScimUserId")
-                        .IsUnique();
-
-                    b.ToTable("scimUserNames");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUserPhoneNumber", b =>
-                {
-                    b.Property<int>("ScimUserPhoneNumberId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<int>("ScimUserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Type")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("ScimUserPhoneNumberId");
-
-                    b.HasIndex("ScimUserId");
-
-                    b.ToTable("scimUserPhoneNumbers");
+                    b.ToTable("Saml2Partner");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -574,63 +325,6 @@ namespace MyScimApp.Data.Users.Migrations
                     b.HasOne("MyScimApp.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimGroupMember", b =>
-                {
-                    b.HasOne("MyScimApp.Models.ScimGroup", "ScimGroup")
-                        .WithMany("Members")
-                        .HasForeignKey("ScimGroupId");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimGroupMetaData", b =>
-                {
-                    b.HasOne("MyScimApp.Models.ScimGroup", "ScimGroup")
-                        .WithOne("Meta")
-                        .HasForeignKey("MyScimApp.Models.ScimGroupMetaData", "ScimGroupId");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUser", b =>
-                {
-                    b.HasOne("MyScimApp.Models.ApplicationUser", "ApplicationUser")
-                        .WithMany("ScimUser")
-                        .HasForeignKey("ApplicationUserId");
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUserEmail", b =>
-                {
-                    b.HasOne("MyScimApp.Models.ScimUser", "ScimUser")
-                        .WithMany("Emails")
-                        .HasForeignKey("ScimUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUserMetaData", b =>
-                {
-                    b.HasOne("MyScimApp.Models.ScimUser", "ScimUser")
-                        .WithOne("Meta")
-                        .HasForeignKey("MyScimApp.Models.ScimUserMetaData", "ScimUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUserName", b =>
-                {
-                    b.HasOne("MyScimApp.Models.ScimUser", "ScimUser")
-                        .WithOne("Name")
-                        .HasForeignKey("MyScimApp.Models.ScimUserName", "ScimUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("MyScimApp.Models.ScimUserPhoneNumber", b =>
-                {
-                    b.HasOne("MyScimApp.Models.ScimUser", "ScimUser")
-                        .WithMany("PhoneNumbers")
-                        .HasForeignKey("ScimUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

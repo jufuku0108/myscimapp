@@ -14,6 +14,7 @@ namespace MyScimApp.Data.Users
             : base(options)
         {
         }
+        /*
         public DbSet<ScimUser> scimUsers { get; set; }
         public DbSet<ScimUserName> scimUserNames { get; set; }
         public DbSet<ScimUserPhoneNumber> scimUserPhoneNumbers { get; set; }
@@ -22,15 +23,18 @@ namespace MyScimApp.Data.Users
         public DbSet<ScimGroup> scimGroups { get; set; }
         public DbSet<ScimGroupMember> scimGroupMembers { get; set; }
         public DbSet<ScimGroupMetaData> scimGroupMetaDatas { get; set; }
-        public DbSet<AccessLog> accessLogs { get; set; }
         public DbSet<AuthenticationCode> authenticationCodes { get; set; }
-        public DbSet<Fido2StoredCredential> fido2StoredCredentials { get; set; }
+         */
+        //public DbSet<AccessLog> AccessLogs { get; set; }
+        
+        public DbSet<Fido2StoredCredential> Fido2StoredCredentials { get; set; }
+        public DbSet<Saml2Partner> Saml2Partners { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-
+            /*
             modelBuilder.Entity<ScimUser>()
                 .HasOne(su => su.Name)
                 .WithOne(sun => sun.ScimUser)
@@ -65,8 +69,18 @@ namespace MyScimApp.Data.Users
                 .WithOne(sgm => sgm.ScimGroup)
                 .HasForeignKey<ScimGroupMetaData>(sgm => sgm.ScimGroupId);
 
+            modelBuilder.Entity<AccessLog>()
+                .ToTable("AccessLog")
+                .HasKey(f => f.AccessLogId);
+             */
+
             modelBuilder.Entity<Fido2StoredCredential>()
+                .ToTable("Fido2StoredCredential")
                 .HasKey(f => f.Fido2StoredCredentialId);
+
+            modelBuilder.Entity<Saml2Partner>()
+                .ToTable("Saml2Partner")
+                .HasKey(f => f.Saml2PartnerId);
 
         }
 

@@ -15,8 +15,10 @@ namespace MyScimApp.Models
 {
     public class ApplicationUser : IdentityUser
     {
+        /*
         public string UserType { get; set; }
         public virtual ICollection<ScimUser> ScimUser { get; set; }
+         */
     }
 
     public class RegisterViewModel
@@ -47,15 +49,24 @@ namespace MyScimApp.Models
     {
         public string LogoutId { get; set; }
         public bool Confirmation { get; set; }
+    }  
+
+    public class ConsentViewModel
+    {
+        public string ClientName { get; set; }
+        public IList<ScopeViewModel> Scopes { get; set; }
+        public string[] ConsentedScopes { get; set; }
+        public string ReturnUrl { get; set; }
+        public string Consented { get; set; }
+
+    }
+    public class ScopeViewModel
+    {
+        public string ScopeName { get; set; }
+        public string DisplayName { get; set; }
+        public string Discription { get; set; }
     }
 
-    public class AuthenticationCode
-    {
-        public Guid AuthenticationCodeId { get; set; }
-        public DateTime ExpiryDate { get; set; }
-        public string Value { get; set; }
-        public bool Active { get; set; }
-    }
     public class AccountMfaInformation
     {
         public string SharedKey { get; set; }

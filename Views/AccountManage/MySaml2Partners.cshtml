@@ -1,0 +1,69 @@
+﻿@model IEnumerable<MyScimApp.Models.Saml2Partner>;
+@{
+    ViewData["Title"] = "MySaml2Partners";
+    Layout = "/Views/AccountManage/_Layout.cshtml";
+}
+
+<h2>My Saml2 Partners</h2>
+
+<form action="/AccountManage/RegisterMySaml2Partner" method="post">
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    @Html.AntiForgeryToken()
+
+    <div class="col-md-8">
+
+        <label class="control-label">MetadataUrl</label>
+        <div class="form-group">
+            <input type="text" value="" name="MetadataUrl" class="form-control">
+        </div>
+        <div class="form-group">
+            <select type="text" id="granttype" name="Type" class="form-control">
+                <option>SP</option> 
+                <option>IdP</option> 
+            </select>
+        </div>
+
+    </div>
+ 
+
+
+    <input type="submit" class="btn btn-warning" value="Register">
+</form>
+<br />
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Issuer)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.MetadataUrl)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Type)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Issuer)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.MetadataUrl)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Type)
+                </td>
+
+                <td>
+                    <a asp-controller="AccountManage" asp-action="DeleteMySaml2Partner" asp-route-id="@item.Saml2PartnerId">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

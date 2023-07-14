@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.IdentityModel;
 
 namespace MyScimApp.Extensions
 {
@@ -18,15 +19,34 @@ namespace MyScimApp.Extensions
             {
                 new IdentityResources.OpenId(),
                 new IdentityResources.Profile(),
-                new IdentityResources.Email()
+                new IdentityResources.Email(),
+                //new IdentityResource(name:"scim", userClaims: new[]{"scim_id","scim_location"},displayName:"Your SCIM resource.")
+
             };
         }
 
-        public static IEnumerable<ApiResource> GetApiResources()
+        public static IEnumerable<ApiResource> GetApiResources(IApplicationBuilder applicationBuilder)
         {
+            var configuration = applicationBuilder.ApplicationServices.GetService<IConfiguration>();
+            var scimAPI = configuration["MyScimAPI"];
+
             return new List<ApiResource>
             {
-                new ApiResource("scimapi", "Scim Apis") {Scopes = {new Scope("scim.read.write")}}
+                new ApiResource(scimAPI, "My SCIM API") {Scopes = { "me", "users.read", "users.read.write", "groups.read", "groups.read.write", "system.read" }},
+            };
+        }
+
+        public static IEnumerable<ApiScope> GetApiScopes()
+        {
+            return new List<ApiScope>
+            {
+                new ApiScope(name: "me", displayName: "Read my profile data using SCIM."),
+                new ApiScope(name: "users.read", displayName: "Read users resources using SCIM."),
+                new ApiScope(name: "users.read.write", displayName: "Read and Write users resources using SCIM."),
+                new ApiScope(name: "groups.read", displayName: "Read groups resources using SCIM."),
+                new ApiScope(name: "groups.read.write", displayName: "Read and Write groups resources using SCIM."),
+                new ApiScope(name: "system.read", displayName: "Read System data.")
+
             };
         }
 
@@ -34,66 +54,46 @@ namespace MyScimApp.Extensions
         {
             var configuration = applicationBuilder.ApplicationServices.GetService<IConfiguration>();
 
-            var myPortalDevelopment = configuration["MyPortalDevelopment"];
-            var myPortalDevelopmentClientId = configuration["MyPortalDevelopmentClientId"];
+            var myScimAppClientId = configuration["MyScimAppClientId"];
+            var myScimAppClientSecret = configuration["MyScimAppClientSecret"];
 
-            var myPortalProduction = configuration["MyPortalProduction"];
-            var myPortalProductionClientId = configuration["MyPortalProductionClientId"];
+            var myAdminPortalClientId = configuration["MyAdminPortalClientId"];
+            var myAdminPortalClientSecret = configuration["MyAdminPortalClientSecret"];
+            var myAdminPortalRedirectUri = configuration["MyAdminPortalRedirectUri"];
+            var myAdminPortalLogoutUri = configuration["MyAdminPortalLogoutUri"];
 
             return new List<Client>
             {
+
                 new Client
                 {
-                    ClientId = myPortalDevelopmentClientId,
-                    ClientName = "My portal",
-
-                    AllowedGrantTypes = GrantTypes.Code,
-                    RequirePkce = true,
-                    RequireClientSecret = false,
-                    AllowAccessTokensViaBrowser = true,
-
-                    RedirectUris =
-                    {
-                        myPortalDevelopment + "/auth-callback",
-                        myPortalDevelopment + "/auth-callback.html",
-                        myPortalDevelopment + "/silent-renew",
-                        myPortalDevelopment + "/silent-renew.html"
-                    },
-
-                    PostLogoutRedirectUris = { myPortalDevelopment },
-                    AllowedCorsOrigins = { myPortalDevelopment },
-
-                    AllowedScopes = { "openid", "profile", "email", "scim.read.write" },
+                    ClientName = "MyScimApp",
+                    ClientId = myScimAppClientId,
+                    ClientSecrets = {new Secret(myScimAppClientSecret.Sha256()) },
+                    AllowedGrantTypes = GrantTypes.ClientCredentials,
+                    AllowedScopes = { "users.read.write", "groups.read.write" },
                     RequireConsent = false,
-                    AccessTokenLifetime = 240
-
+                    Description = "System"
                 },
                 new Client
                 {
-                    ClientId = myPortalProductionClientId,
-                    ClientName = "My portal",
-
+                    ClientName = "MyAdminPortal",
+                    ClientId = myAdminPortalClientId,
+                    ClientSecrets = {new Secret(myAdminPortalClientSecret.Sha256()) },
                     AllowedGrantTypes = GrantTypes.Code,
-                    RequirePkce = true,
-                    RequireClientSecret = false,
-                    AllowAccessTokensViaBrowser = true,
-
-                    RedirectUris =
-                    {
-                        myPortalProduction + "/auth-callback",
-                        myPortalProduction + "/auth-callback.html",
-                        myPortalProduction + "/silent-renew",
-                        myPortalProduction + "/silent-renew.html"
-                    },
-
-                    PostLogoutRedirectUris = { myPortalProduction },
-                    AllowedCorsOrigins = { myPortalProduction },
-
-                    AllowedScopes = { "openid", "profile", "email", "scim.read.write" },
+                    AllowedScopes = { "openid", "email", "profile", "offline_access", "users.read", "groups.read", "system.read" },
                     RequireConsent = false,
-                    AccessTokenLifetime = 1800
+                    AllowOfflineAccess = true,
+                    Description = "System",
+                    RedirectUris = new []{ myAdminPortalRedirectUri },
+                    FrontChannelLogoutUri = myAdminPortalLogoutUri,
+                    BackChannelLogoutUri = myAdminPortalLogoutUri,
+                    RequirePkce = false,
+                    AccessTokenLifetime = 3600,
+                    AbsoluteRefreshTokenLifetime = 86400,
 
                 }
+
             };
         }
     }

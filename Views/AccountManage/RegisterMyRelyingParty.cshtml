@@ -1,0 +1,168 @@
+﻿@model MyScimApp.Models.RegisterClientModel
+@{
+    ViewData["Title"] = "RegisterMyRelyingParty";
+    Layout = "/Views/AccountManage/_Layout.cshtml";
+}
+<form action="/AccountManage/RegisterMyRelyingParty" method="post">
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    @Html.AntiForgeryToken()
+
+    <div class="col-md-8">
+        <label class="control-label">ClientName</label>
+        <div class="form-group">
+            <input type="text" value=@Model?.ClientName name="ClientName" class="form-control">
+        </div>
+
+        <label class="control-label">GrantType</label>
+        <div class="form-group">
+            <select type="text" id="granttype" value=@Model?.GrantType name="GrantType" class="form-control">
+                <option>Code/WebApplication</option>
+                <option>Code/SinglePageApplication</option>
+                <option>ClientCredentials/DemonApplication</option>
+                <option>ResourceOwnerPasswordCredentials</option>
+            </select>
+        </div>
+
+        <label class="control-label">RedirectUris</label>
+        <div class="form-group">
+            <input type="text" id="redirecturis" value=@Model?.RedirectUris name="RedirectUris" class="form-control">
+        </div>
+
+
+        <label class="control-label">ClientSecret</label>
+        <div class="form-group">
+            <input type="text" id="clientsecret" value=@Model?.ClientSecret name="ClientSecret" class="form-control">
+        </div>
+
+        <label class="control-label">Scopes</label>
+
+        <fieldset>
+            <h5>Identity Resouces</h5>
+            <div class="form-check">
+                <input type="checkbox" id="openid" name="Scope[]" value="openid" class="form-check-input">
+                <label class="form-check-label">openid</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="profile" name="Scope[]" value="profile" class="form-check-input">
+                <label class="form-check-label">profile</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="email" name="Scope[]" value="email" class="form-check-input">
+                <label class="form-check-label">email</label>
+            </div>
+            <!--
+        <div class="form-check">
+            <input type="checkbox" id="scim" name="Scope[]" value="scim" class="form-check-input">
+            <label class="form-check-label">scim</label>
+        </div>
+        -->
+            <div class="form-check">
+                <input type="checkbox" id="offline_access" name="Scope[]" value="offline_access" class="form-check-input">
+                <label class="form-check-label">offline_access</label>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <h5>API resources</h5>
+            <div class="form-check">
+                <input type="checkbox" id="me" name="Scope[]" value="me" class="form-check-input">
+                <label class="form-check-label">me</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="user.read" name="Scope[]" value="users.read" class="form-check-input">
+                <label class="form-check-label">users.read</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="user.read.write" name="Scope[]" value="users.read.write" class="form-check-input">
+                <label class="form-check-label">users.read.write</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="group.read" name="Scope[]" value="groups.read" class="form-check-input">
+                <label class="form-check-label">groups.read</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="group.read.write" name="Scope[]" value="groups.read.write" class="form-check-input">
+                <label class="form-check-label">groups.read.write</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="system.read" name="Scope[]" value="system.read" class="form-check-input">
+                <label class="form-check-label">system.read</label>
+            </div>
+        </fieldset>
+
+
+
+
+        <br />
+        <label class="control-label">PostLogoutRedirectUris</label>
+        <div class="form-group">
+            <input type="text" id="postLogoutRedirecturis" value=@Model?.PostLogoutRedirectUris name="PostLogoutRedirectUris" class="form-control">
+        </div>
+        <label class="control-label">FrontChannelLogoutUri</label>
+        <div class="form-group">
+            <input type="text" id="frontChannelLogoutUri" value=@Model?.FrontChannelLogoutUri name="FrontChannelLogoutUri" class="form-control">
+        </div>
+        <label class="control-label">BackChannelLogoutUris</label>
+        <div class="form-group">
+            <input type="text" id="backchannellogouturis" value=@Model?.BackChannelLogoutUri name="BackChannelLogoutUri" class="form-control">
+        </div>
+        <label class="control-label">AccessTokenLifetimeSeconds</label>
+        <div class="form-group">
+            <input type="text" id="accessTokenLifetime" value=@Model?.AccessTokenLifetimeSeconds name="AccessTokenLifetimeSeconds" class="form-control">
+        </div>
+
+
+    </div>
+ 
+
+
+    <input type="submit" class="btn btn-warning" value="Register">
+</form>
+<br />
+<br />
+
+@section Scripts {
+    <script>
+        const granttype = document.getElementById('granttype');
+        const redirecturis = document.getElementById('redirecturis');
+        const postLogoutRedirecturis = document.getElementById('postLogoutRedirecturis');
+        const frontChannelLogoutUri = document.getElementById('frontChannelLogoutUri');
+        const backchannellogouturis = document.getElementById('backchannellogouturis');
+        const clientsecret = document.getElementById('clientsecret');
+        const openid = document.getElementById('openid');
+        const profile = document.getElementById('profile');
+        const email = document.getElementById('email');
+        //const scim = document.getElementById('scim');
+        const offline_access = document.getElementById('offline_access');
+        const me = document.getElementById('me');
+        function disableform() {
+            const idx = granttype.selectedIndex;
+            const str = granttype.options[idx].value;
+            if (str == 'ClientCredentials/DemonApplication') {
+                postLogoutRedirecturis.disabled = true;
+                frontChannelLogoutUri.disabled = true;
+                backchannellogouturis.disabled = true;
+                redirecturis.disabled = true;
+                openid.disabled = true;
+                profile.disabled = true;
+                email.disabled = true;
+                //scim.disabled = true;
+                offline_access.disabled = true;
+                me.disabled = true;
+
+            } else if (str == 'ResourceOwnerPasswordCredentials') {
+                postLogoutRedirecturis.disabled = true;
+                frontChannelLogoutUri.disabled = true;
+                backchannellogouturis.disabled = true;
+                redirecturis.disabled = true;
+            } else if (str == 'Code/SinglePageApplication') {
+                clientsecret.disabled = true;
+            }else{
+                postLogoutRedirecturis.disabled = false;
+                backchannellogouturis.disabled = false;
+                redirecturis.disabled = false;
+            }
+        }
+        granttype.addEventListener('change', disableform ,false);
+    </script>
+}

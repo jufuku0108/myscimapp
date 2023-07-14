@@ -1,0 +1,55 @@
+﻿@model IEnumerable<IdentityServer4.EntityFramework.Entities.Client>;
+@{
+    ViewData["Title"] = "MyRelyingParties";
+    Layout = "/Views/AccountManage/_Layout.cshtml";
+}
+
+<h2>My OIDC/OAuth RelyingParties</h2>
+
+<p>
+    <a asp-controller="AccountManage" asp-action="RegisterMyRelyingParty">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.ClientId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ClientName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.RedirectUris)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Enabled)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.ClientId)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.ClientName)
+                </td>
+                <td>
+                    @if(item.RedirectUris.Count != 0){
+                        @Html.DisplayFor(modelItem => item.RedirectUris[0].RedirectUri)
+                    }
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Enabled)
+                </td>
+                <td>
+                    <a asp-controller="AccountManage" asp-action="DeleteMyRelyingParty" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+<br />

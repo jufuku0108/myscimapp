@@ -4,61 +4,74 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System.Net.Http;
+using IdentityModel.Client;
+using System.Text;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace MyScimApp.Extensions
 {
     public static class CommonFunctions
     {
-        public static JObject CreateErrorJobject(Exception exception)
+        private static HttpClient _httpClient = new HttpClient();
+
+        public static async Task<string> GetAccessTokenFromStsAync(IConfiguration configuration)
         {
-            JObject jObject = new JObject
+
+            var disco = await _httpClient.GetDiscoveryDocumentAsync(configuration["MyScimApp"]);
+            var tokenResponse = await _httpClient.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest
             {
-                new JProperty("schemas",new JArray("urn:ietf:params:scim:api:messages:2.0:Error")),
-                new JProperty("scimType", "invalidValue"),
-                new JProperty("detail",exception.Message),
-                new JProperty("status",500)
-
-            };
-            return jObject;
-
+                Address = disco.TokenEndpoint,
+                ClientId = configuration["MyScimAppClientId"],
+                ClientSecret = configuration["MyScimAppClientSecret"],
+                Scope = "users.read.write"
+            });
+            return tokenResponse.AccessToken;
         }
 
-        public static JObject CreateFilteredJobject(JObject jObject)
+        public static async Task<JObject> GetScimUserAync(IConfiguration configuration, string userName)
         {
-            if(jObject.Count != 0)
+            _httpClient.SetBearerToken(await GetAccessTokenFromStsAync(configuration));
+            var endPoint = configuration["MyScimAPI"] + "/scim/v2/Users?filter=userName eq " + userName;
+            var response = await _httpClient.GetAsync(endPoint);
+
+            var content = await response.Content.ReadAsStringAsync();
+            var jResponse = JObject.Parse(content);
+            if ((int)jResponse["totalResults"] != 0)
             {
-                JObject jo = new JObject
-                {
-                    new JProperty("schemas", new JArray("urn:ietf:params:scim:api:messages:2.0:ListResponse")),
-                    new JProperty("totalResults", 1),
-                    new JProperty("Resources", new JArray(jObject)),
-                    new JProperty("startIndex", 1),
-                    new JProperty("itemsPerPage", 20)
-                };
-                return jo;
+                jResponse.Add(new JProperty("success", true));
+                return jResponse;
             }
-            else
-            {
-                JObject jo = new JObject
-                {
-                    new JProperty("schemas", new JArray("urn:ietf:params:scim:api:messages:2.0:ListResponse")),
-                    new JProperty("totalResults", 0),
-                    new JProperty("Resources", new JArray()),
-                    new JProperty("startIndex", 1),
-                    new JProperty("itemsPerPage", 20)
-                };
-                return jo;
-            }
- 
+            
+            return new JObject(new JProperty("success", false));
         }
-
-
-        public static readonly SHA256CryptoServiceProvider sha256CryptoServiceProvider = new SHA256CryptoServiceProvider();
-        public static string GetSHA256HashedString(string value)
+        public static async Task<JObject> ProvisionScimUserAync(IConfiguration configuration, string id, string userName)
         {
+            _httpClient.SetBearerToken(await GetAccessTokenFromStsAync(configuration));
 
-            return String.Join("", sha256CryptoServiceProvider.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value)).Select(x => $"{x:X2}"));
+            var jRequest = new JObject();
+            var jSchemas = new JArray();
+            jSchemas.Add("urn:ietf:params:scim:schemas:core:2.0:User");
+            jRequest.Add(new JProperty("id", id));
+            jRequest.Add(new JProperty("schemas", jSchemas));
+            jRequest.Add(new JProperty("userName", userName));
+            jRequest.Add(new JProperty("externalId", id));
+            var request = new StringContent(jRequest.ToString(), Encoding.UTF8, "application/json");
+            var createResult = _httpClient.PostAsync(configuration["MyScimAPI"] + "/scim/v2/Users", request).Result;
+            if (createResult.StatusCode == System.Net.HttpStatusCode.Created)
+            {
+                var content = await createResult.Content.ReadAsStringAsync();
+                var jResponse = JObject.Parse(content);
+                
+                jResponse.Add(new JProperty("success", true));
+                return jResponse;
+            }
+
+            return new JObject(new JProperty("success", false));
         }
+
         public static string FormatException(Exception exception)
         {
             return string.Format("{0}{1}", exception.Message, exception.InnerException != null ? "(" + exception.InnerException + ")" : "");

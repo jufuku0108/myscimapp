@@ -1,0 +1,52 @@
+﻿@{
+
+    Layout = "/Views/Shared/_Layout.cshtml";
+    
+}
+
+<h2>Manage your account</h2>
+
+<div>
+    <h4>Change your account settings</h4>
+    <hr />
+    <div class="row">
+        <div class="col-md-3">
+            <partial name="_ManageNav" />
+        </div>
+        <div class="col-md-9">
+            @RenderBody()
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+
+    <script>
+        const myprofilelink = document.getElementById('myprofilelink');
+        const myrelyingpartieslink = document.getElementById('myrelyingpartieslink');
+        const mysaml2partnerslink = document.getElementById('mysaml2partnerslink');
+        const fido2link = document.getElementById('fido2link');
+        const mfalink = document.getElementById('mfalink');
+        window.onload = function(){
+            var path = window.location.pathname
+            if(path.includes('MyProfile')){
+                myprofilelink.classList.add('active')
+            } else if(path.includes('MyRelyingParties')){
+                myrelyingpartieslink.classList.add('active')
+            } else if(path.includes('MySaml2Partners')){
+                mysaml2partnerslink.classList.add('active')
+            } else if(path.includes('Fido2')){
+                fido2link.classList.add('active')
+            } else if (path.includes('MultiFactorAuth')){
+                mfalink.classList.add('active')
+            } else if (path.includes('EnableMfa')) {
+                mfalink.classList.add('active')
+            } else if (path.includes('DisableMfa')) {
+                mfalink.classList.add('active')
+            }
+
+        }
+ 
+    </script>
+}

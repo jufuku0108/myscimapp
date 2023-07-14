@@ -1,6 +1,7 @@
-window.onload = function() {
+window.addEventListener("load", function () {
     document.getElementById('fido2signin').addEventListener('click', handleSigninSubmit);
-}
+})
+
 
 async function handleSigninSubmit(event) {
     event.preventDefault();

@@ -19,11 +19,16 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.CodeAnalysis.Options;
 using System.Reflection;
 using Microsoft.Azure.Services.AppAuthentication;
-using Microsoft.Azure.KeyVault;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Azure.Identity;
+using Azure.Security.KeyVault.Certificates;
+using Azure.Security.KeyVault.Secrets;
+using System.Diagnostics;
 
 namespace MyScimApp
 {
@@ -39,6 +44,7 @@ namespace MyScimApp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
             services.AddControllersWithViews()
                 .AddNewtonsoftJson();
 
@@ -52,25 +58,40 @@ namespace MyScimApp
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
+                var sql = Configuration["DefaultConnection"];
                 options.UseSqlServer(Configuration["DefaultConnection"]);
             });
 
-            services.AddIdentity<ApplicationUser, IdentityRole>()
+
+            services.AddIdentity<ApplicationUser, IdentityRole>(options => {
+                options.SignIn.RequireConfirmedEmail = true;
+                })
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
             // identity server 4 settings.
-            var azureServiceTokenProvider = new AzureServiceTokenProvider();
-            var keyVaultClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(azureServiceTokenProvider.KeyVaultTokenCallback));
-            var certValue = keyVaultClient.GetSecretAsync(Configuration["KeyVaultName"], Configuration["SignCertName"]).GetAwaiter().GetResult();
-            var cert = new X509Certificate2(Convert.FromBase64String(certValue.Value));
-            
+            var kvUri = Configuration["KeyVaultName"];
+            var options = new DefaultAzureCredentialOptions();
+            options.TenantId = Configuration["TenantId"];
+            var certClient = new CertificateClient(new Uri(kvUri), new DefaultAzureCredential(options));
+            KeyVaultCertificateWithPolicy certificate = certClient.GetCertificateAsync(Configuration["SignCertName"]).GetAwaiter().GetResult();
+            var secretClient = new SecretClient(new Uri(kvUri), new DefaultAzureCredential(options));
+            KeyVaultSecret secret = secretClient.GetSecretAsync(certificate.SecretId.Segments[2] + certificate.SecretId.Segments[3]).GetAwaiter().GetResult();
+            var cert = new X509Certificate2(Convert.FromBase64String(secret.Value));
+
+
+
             var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
-            services.AddIdentityServer()
+            services.AddIdentityServer(options =>
+            {
+                options.UserInteraction.ConsentUrl = "/Account/Consent";
+
+            })
                 .AddSigningCredential(cert)
-                .AddOperationalStore(options => {
+                .AddOperationalStore(options =>
+                {
                     options.ConfigureDbContext = builder =>
-                        builder.UseSqlServer(Configuration["DefaultConnection"], db => db.MigrationsAssembly(migrationsAssembly));
+                       builder.UseSqlServer(Configuration["DefaultConnection"], db => db.MigrationsAssembly(migrationsAssembly));
                     options.EnableTokenCleanup = true;
                     options.TokenCleanupInterval = 30;
                 })
@@ -79,15 +100,11 @@ namespace MyScimApp
                     options.ConfigureDbContext = builder =>
                         builder.UseSqlServer(Configuration["DefaultConnection"], db => db.MigrationsAssembly(migrationsAssembly));
                 })
-                .AddAspNetIdentity<ApplicationUser>();
+                .AddAspNetIdentity<ApplicationUser>()
+                //.AddProfileService<ProfileService>()
+                ;
 
             services.AddAuthentication(IdentityServerAuthenticationDefaults.AuthenticationScheme)
-                .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null)
-                .AddIdentityServerAuthentication(options =>
-                {
-                    options.Authority = Configuration["Authority"];
-                    options.ApiName = "scimapi";
-                })
                 .AddFacebook(options =>
                 {
                     options.SignInScheme = IdentityConstants.ExternalScheme;
@@ -112,6 +129,7 @@ namespace MyScimApp
                     options.ClientSecret = Configuration["AzureADClientSecret"];
                     options.Authority = "https://login.microsoftonline.com/common/v2.0/";
                     options.ResponseType = "code";
+                    options.Prompt = "select_account";
                     options.Scope.Add("profile");
                     options.Scope.Add("openid");
                     options.Scope.Add("email");
@@ -120,7 +138,6 @@ namespace MyScimApp
                         ValidateIssuer = false
                     };
                     options.CallbackPath = "/signin-microsoft";
-                    options.Prompt = "login";
                 })
                 .AddOpenIdConnect("ADFS", "AD FS Authentication", options =>
                 {
@@ -139,16 +156,8 @@ namespace MyScimApp
                     options.Prompt = "login";
                 })
                 ;
+            
 
-            services.AddAuthorization(options =>
-            {
-                options.AddPolicy("BearerOrBasicAuth", policy =>
-                {
-                    policy.AddAuthenticationSchemes(IdentityServerAuthenticationDefaults.AuthenticationScheme, "BasicAuthentication");
-                    //policy.RequireScope("scim.read.write");
-                    policy.RequireAuthenticatedUser();
-                });
-             });
             services.AddScoped<Fido2Service>();
 
             services.ConfigureApplicationCookie(options =>
@@ -156,6 +165,14 @@ namespace MyScimApp
                 options.ExpireTimeSpan = TimeSpan.FromMinutes(40);
                 options.SlidingExpiration = true ;
             });
+
+            services.Configure<CookieTempDataProviderOptions>(options =>
+            {
+                options.Cookie.SameSite = SameSiteMode.None;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            });
+
+
         }
         
 
@@ -180,11 +197,11 @@ namespace MyScimApp
 
             app.UseRouting();
 
-            //app.UseAuthentication();
+            //app.UseMiddleware<RequestResponseLogging>();
+
             app.UseIdentityServer();
             app.UseAuthorization();
 
-            app.UseMiddleware<RequestResponseLogging>();
 
             app.UseCors("AllowMyOrigin");
 

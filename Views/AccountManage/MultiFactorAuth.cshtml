@@ -1,0 +1,16 @@
+﻿
+@{
+    ViewData["Title"] = "MultiFactorAuth";
+    Layout = "~/Views/AccountManage/_Layout.cshtml";
+}
+
+<h2>Multi-Factor Authentication</h2>
+
+<a id="enable-mfa" class="btn btn-primary" asp-controller="AccountManage" asp-action="EnableMfa">EnableMfa</a>
+<a id="disable-mfa" class="btn btn-secondary" asp-controller="AccountManage" asp-action="DisableMfa">DisableMfa</a>
+
+<br />
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -9,10 +9,12 @@ using MyScimApp.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using IdentityModel;
+using IdentityModel.Client;
 using IdentityServer4.Extensions;
 using IdentityServer4.Services;
+using IdentityServer4.Models;
 using System.Text;
+using System.Net.Http;
 using Microsoft.AspNetCore.Authentication.Twitter;
 using System.Runtime.InteropServices.WindowsRuntime;
 using MyScimApp.Extensions;
@@ -23,6 +25,12 @@ using Microsoft.Extensions.Caching.Distributed;
 using Fido2NetLib;
 using Fido2NetLib.Objects;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
+using Microsoft.Identity.Client;
+using Microsoft.Graph;
+using IdentityModel;
+using System.Web;
+using IdentityServer4.EntityFramework.DbContexts;
 
 namespace MyScimApp.Controllers
 {
@@ -39,6 +47,7 @@ namespace MyScimApp.Controllers
         private readonly IDistributedCache _distributedCache;
         private Fido2 _fido2;
         private IConfiguration _configuration;
+        private ConfigurationDbContext _configurationDbContext;
 
         public AccountController(
             UserManager<ApplicationUser> userManager, 
@@ -47,7 +56,8 @@ namespace MyScimApp.Controllers
             ApplicationDbContext applicationDbContext,
             Fido2Service fido2Service,
             IDistributedCache distributedCache,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ConfigurationDbContext configurationDbContext)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -62,12 +72,14 @@ namespace MyScimApp.Controllers
                 ServerName = "MyScimApp",
                 Origin = _configuration["Fido2Origin"]
             });
+            _configurationDbContext = configurationDbContext;
         }
 
         [HttpGet]
-        public IActionResult Login(string returnUrl)
+        public IActionResult Login(string userName, string returnUrl)
         {
             var loginViewModel = new LoginViewModel();
+            loginViewModel.Username = userName;
             loginViewModel.ReturnUrl = returnUrl;
             return View(loginViewModel);
         }
@@ -79,6 +91,7 @@ namespace MyScimApp.Controllers
         {
             if (ModelState.IsValid)
             {
+
                 var signinResult = await _signInManager.PasswordSignInAsync(loginViewModel.Username, loginViewModel.Password, loginViewModel.RememberLogin, lockoutOnFailure: true);
                 if (signinResult.Succeeded)
                 {
@@ -86,11 +99,20 @@ namespace MyScimApp.Controllers
                     {
                         return Redirect(loginViewModel.ReturnUrl);
                     }
-                    return RedirectToAction("Index", "AccountManage");
+                    return RedirectToAction("Index", "Home");
                 }
                 else if (signinResult.RequiresTwoFactor)
                 {
                         return RedirectToAction("LoginWithMfa", "Account", new { rememberMe = loginViewModel.RememberLogin, returnUrl = loginViewModel.ReturnUrl});
+                }
+                else if (signinResult.IsNotAllowed)
+                {
+                    var user = await _userManager.FindByNameAsync(loginViewModel.Username);
+                    var emailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
+                    if (!emailConfirmed)
+                        ModelState.AddModelError(string.Empty, "email is not confirmed.");
+
+
                 }
                 ModelState.AddModelError(string.Empty, "sign in failed.");
                 return View(loginViewModel);
@@ -100,11 +122,92 @@ namespace MyScimApp.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Consent(string returnUrl)
+        {
+            var request = await _interaction.GetAuthorizationContextAsync(returnUrl);
+            
+            var consentViewModel = new ConsentViewModel();
+            
+            consentViewModel.ClientName = request.Client.ClientName;
+            consentViewModel.ReturnUrl = returnUrl;
+            
+            var identityResouces = request.ValidatedResources.Resources.IdentityResources;
+            var apiScopes = request.ValidatedResources.Resources.ApiScopes;
+            IList<ScopeViewModel> scopes = new List<ScopeViewModel>();
+            foreach(var identityResouce in identityResouces)
+            {
+                var scope = new ScopeViewModel()
+                {
+                    ScopeName = identityResouce.Name,
+                    DisplayName = identityResouce.DisplayName,
+                    Discription = identityResouce.Description
+                };
+                scopes.Add(scope);
+            }
+            foreach (var apiScope in apiScopes)
+            {
+                var scope = new ScopeViewModel()
+                {
+                    ScopeName = apiScope.Name,
+                    DisplayName = apiScope.DisplayName,
+                    Discription = apiScope.Description
+                };
+                scopes.Add(scope);
+            }
+            if (request.ValidatedResources.ParsedScopes.Where(c => c.ParsedName == "offline_access").Count() > 0)
+            {
+                var scope = new ScopeViewModel()
+                {
+                    ScopeName = "offline_access",
+                    DisplayName = "Offline Access",
+                    Discription = "Allow to issue refresh token."
+                };
+                scopes.Add(scope);
+
+            }
+
+            consentViewModel.Scopes = scopes;
+
+            return View(consentViewModel);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Consent(ConsentViewModel consentViewModel)
+        {
+            if (ModelState.IsValid)
+            {
+                ConsentResponse consentResponse = null;
+                var request = await _interaction.GetAuthorizationContextAsync(consentViewModel.ReturnUrl);
+                if (consentViewModel.Consented == "yes")
+                {
+                    var consentedScopes = new List<string>();
+                    if(consentViewModel.ConsentedScopes.Count() > 0)
+                    {
+                        foreach (var scope in consentViewModel.ConsentedScopes)
+                        {
+                            consentedScopes.Add(scope);
+                        }
+                    }
+                    consentResponse = new ConsentResponse { ScopesValuesConsented = consentedScopes, RememberConsent = true };
+                }
+                else
+                {
+                    consentResponse = new ConsentResponse { Error = AuthorizationError.AccessDenied };
+
+                }
+                await _interaction.GrantConsentAsync(request, consentResponse);
+                return Redirect(consentViewModel.ReturnUrl);
+            }
+            return View(consentViewModel);
+
+        }
+
+        [HttpGet]
         public IActionResult ExternalChallenge(string provider, string returnUrl)
         {
             if (string.IsNullOrEmpty(returnUrl))
             {
-                returnUrl = "/AccountManage";
+                returnUrl = "/Home/Index";
             }
 
             var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, "/Account/ExternalLogin");
@@ -129,11 +232,19 @@ namespace MyScimApp.Controllers
                 return RedirectToAction("Error", "Home");
 
             }
-            var returnUrl = info.AuthenticationProperties.Items["returnUrl"] ?? Url.Content("~/AccountManage");
+            var returnUrl = info.AuthenticationProperties.Items["returnUrl"] ?? Url.Content("~/Home/Index");
 
             var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
             if (result.Succeeded)
             {
+                var user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+                var claims = await _userManager.GetClaimsAsync(user);
+                var exsistingsid = claims.Where(c => c.Type == "sid").FirstOrDefault();
+                var newsid = info.Principal.Claims.Where(c => c.Type == "sid").FirstOrDefault();
+                await _userManager.RemoveClaimAsync(user, exsistingsid);
+                await _userManager.AddClaimAsync(user, newsid);
+                await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
+
                 return Redirect(returnUrl);
             }
             if (result.IsLockedOut)
@@ -142,7 +253,7 @@ namespace MyScimApp.Controllers
             }
             else
             {
-
+                // need to create user, so show the user creation page.
                 var externalLoginModel = new ExternalLoginModel();
                 externalLoginModel.LoginProvider = info.LoginProvider;
                 externalLoginModel.Claims = info.Principal.Claims;
@@ -179,16 +290,17 @@ namespace MyScimApp.Controllers
 
             if (ModelState.IsValid)
             {
+
                 var applicationUser = new ApplicationUser { UserName = externalLoginModel.Email, Email = externalLoginModel.Email, EmailConfirmed = true };
                 var result = await _userManager.CreateAsync(applicationUser);
                 if (result.Succeeded)
                 {
-                    ProvisionScimUser(applicationUser, "ExternalUser");
+                    await _userManager.AddClaimsAsync(applicationUser, info.Principal.Claims);
 
                     result = await _userManager.AddLoginAsync(applicationUser, info);
                     if (result.Succeeded)
                     {
-                        var returnUrl = info.AuthenticationProperties.Items["returnUrl"] ?? Url.Content("/AccountManage");
+                        var returnUrl = info.AuthenticationProperties.Items["returnUrl"] ?? Url.Content("/Home/Index");
                         await _signInManager.SignInAsync(applicationUser, isPersistent: false);
                         return Redirect(returnUrl);
                     }
@@ -227,40 +339,81 @@ namespace MyScimApp.Controllers
         }
 
         [HttpPost]
-        [AutoValidateAntiforgeryToken]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout(LogoutViewModel logoutViewModel)
         {
             
             if(ModelState.IsValid && logoutViewModel.Confirmation)
             {
-                var idp = User.FindFirst(JwtClaimTypes.IdentityProvider)?.Value;
-                if(idp != null && idp != IdentityServer4.IdentityServerConstants.LocalIdentityProvider)
-                {
-                    var providerSupportsSignout = await HttpContext.GetSchemeSupportsSignOutAsync(idp);
-                    if (providerSupportsSignout)
-                    {
-                        await _signInManager.SignOutAsync();
-                        string url = Url.Action("Logout", new { logoutId = logoutViewModel.LogoutId });
-                       return SignOut(new AuthenticationProperties { RedirectUri = url }, idp);
-                    }
-
-                }
+                var userName = User.Identity.Name;
                 await _signInManager.SignOutAsync();
 
                 var logoutId = logoutViewModel.LogoutId;
+                var idp = User.FindFirst(JwtClaimTypes.IdentityProvider)?.Value;
+
+                // Logout Request from clients using endsession.
                 if (!string.IsNullOrEmpty(logoutId))
                 {
                     var context = await _interaction.GetLogoutContextAsync(logoutId);
                     var returnUrl = context.PostLogoutRedirectUri;
+                    var frontchlogoutUri = _configurationDbContext.Clients.Where(c => c.ClientId == context.ClientId).FirstOrDefault().FrontChannelLogoutUri;
+
+                    if (string.IsNullOrEmpty(returnUrl))
+                        return Redirect(frontchlogoutUri);
+
+
+                    if (idp != null && idp != IdentityServer4.IdentityServerConstants.LocalIdentityProvider)
+                    {
+                        // logout from idp.
+                        var providerSupportsSignout = await HttpContext.GetSchemeSupportsSignOutAsync(idp);
+                        if (providerSupportsSignout)
+                        {
+                            string url = Url.Action("Logout", new { logoutId = logoutViewModel.LogoutId });
+                            return SignOut(new AuthenticationProperties { RedirectUri = url }, idp);
+                        }
+
+                    }
+
                     return Redirect(returnUrl);
 
                 }
 
+                // Logout Request from this sts not using endsession.
+                if (idp != null && idp != IdentityServer4.IdentityServerConstants.LocalIdentityProvider)
+                {
+                    var providerSupportsSignout = await HttpContext.GetSchemeSupportsSignOutAsync(idp);
+                    if (providerSupportsSignout)
+                    {
+                       string url = Url.Action("Logout", new { logoutId = logoutViewModel.LogoutId });
+                       return SignOut(new AuthenticationProperties { RedirectUri = url }, idp);
+                    }
+
+                }
+
                 return RedirectToAction("Login", "Account");
+
+                //TempData["UserName"] = userName;
+                //return RedirectToAction("Logout", "Saml2");
             }
             return View(logoutViewModel);
         }
         
+        [HttpGet]
+        public async Task<IActionResult> FrontChannelLogout(string sid)
+        {
+            var loginsid = User.Claims.Where(c => c.Type == "sid").FirstOrDefault().Value;
+
+            if (sid == loginsid)
+            {
+                await _signInManager.SignOutAsync();
+                return Ok();
+            }
+
+
+            return NoContent();
+        }
+
+
         [HttpGet]
         public IActionResult Register(string returnUrl = null)
         {
@@ -274,27 +427,106 @@ namespace MyScimApp.Controllers
         {
             if (ModelState.IsValid)
             {
-                var applicationUser = new ApplicationUser { UserName = registerViewModel.Username, Email = registerViewModel.Username, EmailConfirmed = true, UserType = "ApplicationUser" };
-                var result = await _userManager.CreateAsync(applicationUser, registerViewModel.Password);
-                if (result.Succeeded)
+
+                var scimGetResult = await CommonFunctions.GetScimUserAync(_configuration, registerViewModel.Username);
+                if (!(bool)scimGetResult["success"])
                 {
-                    ProvisionScimUser(applicationUser, "ApplicationUser");
-                    return RedirectToAction("Login", "Account", new { ReturnUrl = registerViewModel.ReturnUrl });
+
+                    //not exist scimuser, first create local user
+                    var applicationUser = new ApplicationUser { UserName = registerViewModel.Username, Email = registerViewModel.Username, EmailConfirmed = false };
+                    var result = await _userManager.CreateAsync(applicationUser, registerViewModel.Password);
+
+                    if (result.Succeeded)
+                    {
+                        // next create scim user
+                        var user = await _userManager.FindByNameAsync(registerViewModel.Username);
+                        var jCreatedResponse = await CommonFunctions.ProvisionScimUserAync(_configuration, user.Id, user.UserName);
+
+                        if ((bool)jCreatedResponse["success"])
+                        {
+                            await AddImmutableId(user, jCreatedResponse);
+
+                            // verify email address
+                            var emailConfirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                            var emailConfirmationLink = Url.Action("EmailConfirmation", "Account", new { userid = user.Id, token = emailConfirmationToken }, protocol: Request.Scheme);
+                            SendVerifyCode(user.UserName, emailConfirmationLink);
+                            return RedirectToAction("EmailConfirmation", "Account");
+                        }
+
+                    }
+                    else
+                    {
+                        var erros = result.Errors.ToList();
+                        var message = new StringBuilder();
+                        foreach (var error in erros)
+                        {
+                            message.Append(error.Code + ": " + error.Description + Environment.NewLine);
+                        }
+                        ModelState.AddModelError(string.Empty, message.ToString());
+                        return View(registerViewModel);
+
+                    }
+
                 }
-                var erros = result.Errors.ToList();
-                var message = new StringBuilder();
-                foreach (var error in erros)
+                else
                 {
-                    message.Append(error.Code + ": " + error.Description + Environment.NewLine);
+                    // already existing scim user then create application user
+
+                    //crate local user
+                    var applicationUser = new ApplicationUser { Id = (string)scimGetResult["Resources"][0]["id"], UserName = registerViewModel.Username, Email = registerViewModel.Username, EmailConfirmed = false };
+                    var result = await _userManager.CreateAsync(applicationUser, registerViewModel.Password);
+
+                    if (result.Succeeded)
+                    {
+                        var user = await _userManager.FindByNameAsync(registerViewModel.Username);
+
+                        await AddImmutableId(user, (JObject)scimGetResult["Resources"][0]);
+
+
+                        return RedirectToAction("Login", "Account", new { ReturnUrl = registerViewModel.ReturnUrl });
+                    }
+                    else
+                    {
+                        var erros = result.Errors.ToList();
+                        var message = new StringBuilder();
+                        foreach (var error in erros)
+                        {
+                            message.Append(error.Code + ": " + error.Description + Environment.NewLine);
+                        }
+                        ModelState.AddModelError(string.Empty, message.ToString());
+                        return View(registerViewModel);
+                    }
+
                 }
-                ModelState.AddModelError(string.Empty, message.ToString());
+                  
+
             }
             return View(registerViewModel);
         }
         
 
         [HttpGet]
-        public async Task<IActionResult> LoginWithMfa(bool rememberMe, string returnUrl = "/AccountManage")
+        public async Task<IActionResult> EmailConfirmation(string userid, string token)
+        {
+            if(!string.IsNullOrEmpty(userid) && !string.IsNullOrEmpty(token))
+            {
+                var user = await _userManager.FindByIdAsync(userid);
+                var result = await _userManager.ConfirmEmailAsync(user, token);
+                if (result.Succeeded)
+                {
+                    ViewData["Message"] = "Your email address was confirmed.";
+                    return View();
+                }
+
+            }
+            ViewData["Message"] = "Please confirm your email address at first.";
+            return View();
+
+
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> LoginWithMfa(bool rememberMe, string returnUrl = "/Home/Index")
         {
             var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
             if(user == null)
@@ -333,25 +565,6 @@ namespace MyScimApp.Controllers
         {
             try
             {
-                /* For the use of MFA or to force authenticator to sign in with specific user.
-                 * If you want to select which user sign in on authenticator, then omit those codes.
-                 
-                var identityUser = await _signInManager.GetTwoFactorAuthenticationUserAsync();
-                if (identityUser == null)
-                {
-                    throw new InvalidOperationException($"Unable to load two factor authentication user.");
-                }
-                var existingCredentials = new List<PublicKeyCredentialDescriptor>();
-                var fido2User = new Fido2User
-                {
-                    DisplayName = identityUser.UserName,
-                    Name = identityUser.UserName,
-                    Id = UTF8Encoding.UTF8.GetBytes(identityUser.UserName)
-                };
-                var fidoStoredCredentials = await _fido2Service.GetFido2StoredCredentialsByUserNameAsync(identityUser.UserName);
-                existingCredentials = fidoStoredCredentials.Select(c => c.Descriptor).ToList();
-                
-                 */
 
                 var authenticationExtensionsClientInputs = new AuthenticationExtensionsClientInputs
                 {
@@ -444,63 +657,50 @@ namespace MyScimApp.Controllers
             }
         }
 
-
-
-
-        private void ProvisionScimUser(ApplicationUser applicationUser, string userType)
+        private async Task<bool> AddImmutableId(ApplicationUser applicationUser, JObject jObject)
         {
-            var scimUser = new ScimUser
+            var id = (string)jObject["id"];
+            var claimImmutableId = new Claim("immutableId", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(id.Replace("-", ""))));
+            await _userManager.AddClaimAsync(applicationUser, claimImmutableId);
+
+            var claimScimId = new Claim("scim_id", (string)jObject["id"]);
+            await _userManager.AddClaimAsync(applicationUser, claimScimId);
+            var claimScimLocation = new Claim("scim_location", (string)jObject["meta"]["location"]);
+            await _userManager.AddClaimAsync(applicationUser, claimScimLocation);
+
+            return true;
+        }
+
+        private bool SendVerifyCode(string emailAddress, string bodyText)
+        {
+            var confidentialClient = ConfidentialClientApplicationBuilder
+                .Create(_configuration["VerifyEmailClientId"])
+                .WithTenantId(_configuration["VerifyEmailTenant"])
+                .WithClientSecret(_configuration["VerifyEmailClientSecret"])
+                .Build();
+
+            GraphServiceClient graphServiceClient = new GraphServiceClient(new DelegateAuthenticationProvider(async (request) =>
             {
-                Schemas = new string[] { "urn:ietf:params:scim:schemas:core:2.0:User" },
-                UserName = applicationUser.UserName,
-                Active = true,
-                Roles = new string[] { },
-                UserType = userType
+                var authResult = await confidentialClient.AcquireTokenForClient(new string[] { "https://graph.microsoft.com/.default" }).ExecuteAsync();
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResult.AccessToken);
+            }));
+
+            var message = new Message
+            {
+                Subject = "Verify your email address.",
+                Body = new ItemBody
+                {
+                    ContentType = BodyType.Html,
+                    Content = "Please click the link to verify your email address. " + bodyText
+                },
+                ToRecipients = new List<Recipient>()
+                {
+                    new Recipient { EmailAddress = new EmailAddress { Address = emailAddress }}
+                }
             };
-            var scimUserName = new ScimUserName();
-            var scimUserPhoneNumbers = new List<ScimUserPhoneNumber>();
-            var scimUserEmails = new List<ScimUserEmail>() { new ScimUserEmail { Primary = true, Type = "work", Value = applicationUser.Email } };
-            var creationTime = DateTime.UtcNow;
-            var varsion = CommonFunctions.GetSHA256HashedString(creationTime.ToString());
-            var etag = "W/\"" + varsion + "\"";
+            graphServiceClient.Users[_configuration["VerifyEmailSenderId"]].SendMail(message, true).Request().PostAsync().Wait();
 
-            var scimUserMetaData = new ScimUserMetaData
-            {
-                ResourceType = "User",
-                Created = DateTime.UtcNow,
-                LastModified = DateTime.UtcNow,
-                Version = etag
-            };
-
-            applicationUser.ScimUser = new ScimUser[] { scimUser };
-            scimUser.ApplicationUser = applicationUser;
-
-            scimUser.Name = scimUserName;
-            scimUserName.ScimUser = scimUser;
-
-            scimUser.PhoneNumbers = scimUserPhoneNumbers;
-            foreach (var scimUserPhoneNumber in scimUserPhoneNumbers)
-            {
-                scimUserPhoneNumber.ScimUser = scimUser;
-            }
-
-            scimUser.Emails = scimUserEmails;
-            foreach (var scimUserEmail in scimUserEmails)
-            {
-                scimUserEmail.ScimUser = scimUser;
-            }
-
-            scimUserMetaData.Location = new Uri(this.Url.Link("GetScimUserById", new { id = applicationUser.Id })).ToString();
-            scimUser.Meta = scimUserMetaData;
-            scimUserMetaData.ScimUser = scimUser;
-
-            _applicationDbContext.scimUsers.Add(scimUser);
-            _applicationDbContext.scimUserNames.Add(scimUserName);
-            _applicationDbContext.scimUserPhoneNumbers.AddRange(scimUserPhoneNumbers);
-            _applicationDbContext.scimUserEmails.AddRange(scimUserEmails);
-            _applicationDbContext.scimUserMetaDatas.Add(scimUserMetaData);
-            _applicationDbContext.SaveChanges();
-
+            return true;
         }
 
     }

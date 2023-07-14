@@ -9,117 +9,20 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>LoginWithMfa</title>
+
     <link href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round" rel="stylesheet">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-
     <link rel="stylesheet" href="~/css/bootstrap-social.css" />
+    <link rel="stylesheet" href="~/css/customlayout.css" />
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
 
-    <style type="text/css">
-        body {
-            background-color: #c2c1c1;
-            font-family: 'Varela Round', sans-serif;
-        }
 
-        .modal-login {
-            color: #636363;
-            width: 350px;
-        }
-
-            .modal-login .modal-content {
-                padding: 20px;
-                border-radius: 5px;
-                border: none;
-            }
-
-            .modal-login .modal-header {
-                border-bottom: none;
-                position: relative;
-                justify-content: center;
-            }
-
-            .modal-login h4 {
-                text-align: center;
-                font-size: 26px;
-            }
-
-            .modal-login .form-group {
-                position: relative;
-            }
-
-            .modal-login i {
-                position: absolute;
-                left: 13px;
-                top: 11px;
-                font-size: 18px;
-            }
-
-                .modal-login .form-control:focus {
-                    border-color: #12b5e5;
-                }
-
-            .modal-login .form-control, .modal-login .btn {
-                min-height: 40px;
-                border-radius: 3px;
-                transition: all 0.5s;
-            }
-
-            .modal-login .close {
-                position: absolute;
-                top: -5px;
-                right: -5px;
-            }
-
-            .modal-login input[type="checkbox"] {
-                margin-top: 1px;
-            }
-
-            .modal-login .forgot-link {
-                color: #12b5e5;
-                float: right;
-            }
-
-            .modal-login .btn-lg:hover, .modal-login .btn:focus {
-                background: #10a3cd;
-            }
-
-            .modal-login .modal-footer {
-                color: #999;
-                border: none;
-                text-align: center;
-                border-radius: 5px;
-                font-size: 13px;
-                margin-top: -20px;
-                justify-content: center;
-            }
-
-                .modal-login .modal-footer a {
-                    color: #12b5e5;
-                }
-
-        .trigger-btn {
-            display: inline-block;
-            margin: 100px auto;
-        }
-        .form-control {
-            width: 140px;
-        }
-
-        .btn-success {
-            width: 500px;
-        }
-        .infomassage {
-            font-size: small;
-        }
-       .back-link {
-            color: #12b5e5;
-            float: left;
-        }
-    </style>
 </head>
 <body>
 
@@ -136,7 +39,10 @@
                     <p class="text-info infomassage">Your login is protected with an authenticator app. Enter your authenticator code below.</p>
 
                     <form action="/Account/LoginWithMfa" method="post">
-                        <input type="password" class="form-control" placeholder="Verify Code" name="AuthenticationCode" autocomplete="off">
+                        <div class="form-group">
+                            <i class="fa fa-lock"></i>
+                            <input type="password" class="form-control" placeholder="Verify Code" name="AuthenticationCode" autocomplete="off">
+                        </div>
 
                         <div class="form-group small clearfix">
                             <label class="checkbox-inline"><input name="RememberComputer" type="checkbox" value="true"> Remember this computer</label>

@@ -1,21 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Fido2NetLib;
+using Fido2NetLib.Objects;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
+using MyScimApp.Extensions;
+using Microsoft.EntityFrameworkCore;
+using MyScimApp.Models;
+using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using IdentityServer4.Endpoints.Results;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using MyScimApp.Models;
-using Fido2NetLib;
-using Fido2NetLib.Objects;
-using MyScimApp.Extensions;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.CodeAnalysis.Options;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
+using IdentityServer4.EntityFramework.DbContexts;
+using IdentityServer4.EntityFramework.Mappers;
+using IdentityServer4.Models;
+using MyScimApp.Data.Users;
+using ITfoxtec.Identity.Saml2.Schemas.Metadata;
 
 namespace MyScimApp.Controllers
 {
@@ -30,40 +33,44 @@ namespace MyScimApp.Controllers
         private readonly IDistributedCache _distributedCache;
         private readonly Fido2 _fido2;
         private IConfiguration _configuration;
+        private ConfigurationDbContext _configurationDbContext;
+        private readonly ApplicationDbContext _applicationDbContext;
 
         public AccountManageController(
             UserManager<ApplicationUser> userManager,
             UrlEncoder urlEncoder,
             Fido2Service fido2Service,
             IDistributedCache distributedCache,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ConfigurationDbContext configurationDbContext,
+            ApplicationDbContext applicationDbContext)
         {
             _userManager = userManager;
             _urlEncoder = urlEncoder;
             _fido2Service = fido2Service;
             _distributedCache = distributedCache;
             _configuration = configuration;
+            _configurationDbContext = configurationDbContext;
+            _applicationDbContext = applicationDbContext;
 
             _fido2 = new Fido2(new Fido2Configuration()
             {
                 ServerDomain = _configuration["Fido2ServerDomain"],
                 ServerName = "MyScimApp",
-                Origin = _configuration["Fido2Origin"]
+                Origin = "https://" + _configuration["Fido2ServerDomain"]
             });
         }
 
 
-        public async Task<IActionResult> Index()
+        public IActionResult MyProfile()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if(user.PasswordHash != null)
-            {
-                ViewData["disabled"] = "";
-            }
-            else
-            {
-                ViewData["disabled"] = "disabled";
-            }
+            TempData["myprofile"] = "active";
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult MultiFactorAuth()
+        {
             return View();
         }
 
@@ -107,7 +114,7 @@ namespace MyScimApp.Controllers
                     if (isVerifyCodeValid)
                     {
                         await _userManager.SetTwoFactorEnabledAsync(user, true);
-                        ViewData["Message"] = "Your authenticator app has been verified.";
+                        ViewData["Message"] = "Your authenticator app has been verified. In case of you lost your mobile phone, write down 10 recovery codes below. \r\n";
 
                         if(await _userManager.CountRecoveryCodesAsync(user) == 0)
                         {
@@ -117,7 +124,7 @@ namespace MyScimApp.Controllers
                             {
                                 recoveryCodes.Append(code).Append(" ");
                             }
-                            ViewData["RecoveryCodes"] = " In case of you lost your mobile phone, write down 10 recovery codes below. \r\n" + recoveryCodes.ToString();
+                            ViewData["RecoveryCodes"] = recoveryCodes.ToString();
                             return View(accountMfaInformation);
                         }
                         return View(accountMfaInformation);
@@ -151,13 +158,18 @@ namespace MyScimApp.Controllers
                         throw new InvalidOperationException();
                     }
                     var result = await _userManager.SetTwoFactorEnabledAsync(user, false);
-                    return RedirectToAction("Index");
+                    return RedirectToAction("MyProfile");
                 }
             }
             ModelState.AddModelError(string.Empty, "invalid operation.");
             return View(disableMfaViewModel);
         }
 
+        [HttpGet]
+        public IActionResult Fido2()
+        {
+            return View();
+        }
 
         [HttpGet]
         public async Task<IActionResult> EnableFido2()
@@ -194,7 +206,7 @@ namespace MyScimApp.Controllers
                 }
                 if (disableFido2ViewModel.Confirmation)
                     _fido2Service.RemoveFido2StoredCredentialsByUserNameAsync(user.UserName);
-                return RedirectToAction("Index", "AccountManage");
+                return RedirectToAction("MyProfile", "AccountManage");
             }
             ModelState.AddModelError(string.Empty, "invalid operation.");
             return View(disableFido2ViewModel);
@@ -311,7 +323,7 @@ namespace MyScimApp.Controllers
                 newFido2StoredCredential.SignatureCounter = result.Result.Counter;
                 newFido2StoredCredential.CredType = result.Result.CredType;
                 newFido2StoredCredential.RegDate = DateTime.Now;
-                newFido2StoredCredential.AaGuid = Guid.NewGuid();
+                newFido2StoredCredential.AaGuid = result.Result.Aaguid;
                 newFido2StoredCredential.Descriptor = new PublicKeyCredentialDescriptor(result.Result.CredentialId);
 
                 _fido2Service.AddFido2StoredCredential(newFido2StoredCredential);
@@ -325,7 +337,217 @@ namespace MyScimApp.Controllers
             }
 
         }
-        
+
+        [HttpGet]
+        public IActionResult MyRelyingParties()
+        {
+            var applications = _configurationDbContext.Clients.AsQueryable().Where(c => c.Description == User.Identity.Name)
+                .Include(c => c.RedirectUris)
+                .ToList();
+
+            return View(applications);
+        }
+
+        [HttpGet]
+        public IActionResult RegisterMyRelyingParty()
+        {
+            var myApplication = new RegisterClientModel();
+            return View(myApplication);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RegisterMyRelyingParty(RegisterClientModel registerClientModel)
+        {
+            if (ModelState.IsValid)
+            {
+
+                switch (registerClientModel.GrantType)
+                {
+                    case "Code/WebApplication":
+                        var webapplication = new Client
+                        {
+                            Description = User.Identity.Name,
+                            ClientId = Guid.NewGuid().ToString(),
+                            AllowedGrantTypes = GrantTypes.Code,
+                            RequireConsent = true,
+                            AlwaysIncludeUserClaimsInIdToken = true,
+                            RequirePkce = false,
+                            AccessTokenLifetime = registerClientModel.AccessTokenLifetimeSeconds
+
+                        };
+                        if(registerClientModel.ClientName != null)
+                            webapplication.ClientName = registerClientModel.ClientName;
+
+                        if(registerClientModel.ClientSecret != null)
+                            webapplication.ClientSecrets =  new[]{ new Secret(registerClientModel.ClientSecret.Sha256())};
+
+                        if(registerClientModel.Scope?.Count() > 0)
+                        {
+                            webapplication.AllowedScopes = registerClientModel.Scope;
+                            if (registerClientModel.Scope.Contains("offline_access"))
+                            {
+                                webapplication.AllowOfflineAccess = true;
+                            }
+                        }
+
+                        if(registerClientModel.RedirectUris?.Count() > 0)
+                        {
+                            string[] webrdctUrls = registerClientModel.RedirectUris.Split(",");
+                            webapplication.RedirectUris = webrdctUrls;
+                        }
+                        if (registerClientModel.PostLogoutRedirectUris?.Count() > 0)
+                        {
+                            string[] webpstlgtUrls = registerClientModel.PostLogoutRedirectUris?.Split(",");
+                            webapplication.PostLogoutRedirectUris = webpstlgtUrls;
+                        }
+                        if (registerClientModel.BackChannelLogoutUri != null)
+                            webapplication.BackChannelLogoutUri = registerClientModel.BackChannelLogoutUri;
+                        if (registerClientModel.FrontChannelLogoutUri != null)
+                            webapplication.FrontChannelLogoutUri = registerClientModel.FrontChannelLogoutUri;
+
+
+                        _configurationDbContext.Clients.Add(webapplication.ToEntity());
+                        _configurationDbContext.SaveChanges();
+                        break;
+
+                    case "Code/SinglePageApplication":
+                        string[] spardctUrls = registerClientModel.RedirectUris.Split(",");
+                        string[] spaoriginorg = spardctUrls[0].Split('/');
+                        string spaorigin = "https://" + spaoriginorg[2];
+                        string[] spapstlgtUrls = registerClientModel.PostLogoutRedirectUris.Split(",");
+                        var codeapplication = new Client
+                        {
+                            Description = User.Identity.Name,
+                            ClientId = Guid.NewGuid().ToString(),
+                            ClientName = registerClientModel.ClientName,
+                            AllowedGrantTypes = GrantTypes.Code,
+                            AllowedScopes = registerClientModel.Scope,
+                            RedirectUris = spardctUrls,
+                            PostLogoutRedirectUris = spapstlgtUrls,
+                            BackChannelLogoutUri = registerClientModel.BackChannelLogoutUri,
+                            RequireConsent = false,
+                            RequirePkce = true,
+                            RequireClientSecret = false,
+                            AllowAccessTokensViaBrowser = true,
+                            AllowedCorsOrigins = { spaorigin },
+                            AccessTokenLifetime = registerClientModel.AccessTokenLifetimeSeconds
+
+
+                        };
+                        _configurationDbContext.Clients.Add(codeapplication.ToEntity());
+                        _configurationDbContext.SaveChanges();
+
+                        break;
+                    case "ClientCredentials/DemonApplication":
+                        var demonapplication = new Client
+                        {
+                            Description = User.Identity.Name,
+                            ClientId = Guid.NewGuid().ToString(),
+                            ClientName = registerClientModel.ClientName,
+                            ClientSecrets = { new Secret(registerClientModel.ClientSecret.Sha256()) },
+                            AllowedGrantTypes = GrantTypes.ClientCredentials,
+                            AllowedScopes = registerClientModel.Scope,
+                            RequireConsent = false,
+                            AccessTokenLifetime = registerClientModel.AccessTokenLifetimeSeconds
+
+                        };
+                        _configurationDbContext.Clients.Add(demonapplication.ToEntity());
+                        _configurationDbContext.SaveChanges();
+                        
+                        break;
+
+                    case "ResourceOwnerPasswordCredentials":
+                        var ropcClient = new Client
+                        {
+                            Description = User.Identity.Name,
+                            ClientId = Guid.NewGuid().ToString(),
+                            AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
+                            RequireConsent = true,
+                            AlwaysIncludeUserClaimsInIdToken = true,
+                            RequirePkce = false,
+                            AccessTokenLifetime = registerClientModel.AccessTokenLifetimeSeconds
+
+                        };
+                        if (registerClientModel.ClientName != null)
+                            ropcClient.ClientName = registerClientModel.ClientName;
+
+                        if (registerClientModel.ClientSecret != null)
+                            ropcClient.ClientSecrets = new[] { new Secret(registerClientModel.ClientSecret.Sha256()) };
+
+
+                        if (registerClientModel.Scope?.Count() > 0)
+                        {
+                            ropcClient.AllowedScopes = registerClientModel.Scope;
+                            if (registerClientModel.Scope.Contains("offline_access"))
+                            {
+                                ropcClient.AllowOfflineAccess = true;
+                            }
+                        }
+
+                        _configurationDbContext.Clients.Add(ropcClient.ToEntity());
+                        _configurationDbContext.SaveChanges();
+                        break;
+
+
+
+                }
+                return RedirectToAction("MyRelyingParties", "AccountManage");
+
+            }
+            return View(registerClientModel);
+        }
+
+        public IActionResult DeleteMyRelyingParty(int id)
+        {
+            var application = _configurationDbContext.Clients.AsQueryable().Where(c => c.Id == id).FirstOrDefault();
+            _configurationDbContext.Clients.Remove(application);
+            _configurationDbContext.SaveChanges();
+            return RedirectToAction("MyRelyingParties", "AccountManage");
+
+        }
+
+        [HttpGet]
+        public IActionResult MySaml2Partners()
+        {
+            var mySaml2ServiceProviders = _applicationDbContext.Saml2Partners.Where(c => c.RegisteredBy == User.Identity.Name);
+
+            return View(mySaml2ServiceProviders);
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RegisterMySaml2Partner(Saml2Partner saml2Partner)
+        {
+            if (ModelState.IsValid)
+            {
+
+
+                var entityDescriptor = new EntityDescriptor();
+                entityDescriptor.ReadSPSsoDescriptorFromUrl(new Uri(saml2Partner.MetadataUrl));
+                saml2Partner.Issuer = entityDescriptor.EntityId;
+                saml2Partner.RegisteredBy = User.Identity.Name;
+
+                _applicationDbContext.Saml2Partners.Add(saml2Partner);
+                _applicationDbContext.SaveChanges();
+                return RedirectToAction("MySaml2Partners", "AccountManage");
+
+
+            }
+            return View(saml2Partner);
+        }
+
+        public IActionResult DeleteMySaml2Partner(int id)
+        {
+            var saml2Partner = _applicationDbContext.Saml2Partners.Where(c => c.Saml2PartnerId == id).FirstOrDefault();
+            _applicationDbContext.Saml2Partners.Remove(saml2Partner);
+            _applicationDbContext.SaveChanges();
+            return RedirectToAction("MySaml2Partners", "AccountManage");
+
+        }
+
+
 
         private string GenerateQrCodeUri(string email, string unformattedKey)
         {

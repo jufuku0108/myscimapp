@@ -1,0 +1,74 @@
+﻿@model MyScimApp.Models.ConsentViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/css/bootstrap-social.css" />
+    <link href="https://fonts.googleapis.com/css?family=Work+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/6.10.1/sweetalert2.min.css" />
+    <link rel="stylesheet" href="~/css/customlayout.css" />
+  
+
+    
+</head>
+<body>
+
+    <div id="myModal">
+        <div class="modal-dialog modal-login">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Consent</h4>
+                </div>
+                <div class="modal-body">
+                    <h3>@Model.ClientName</h3>
+
+                    <form action="/Account/Consent" method="post">
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                        @Html.AntiForgeryToken()
+                        
+                        @if (Model.Scopes.Any())
+                        {
+                            <div class="form-group">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <span class="glyphicon glyphicon-tasks"></span>
+                                        Client requests following scopes.
+                                    </div>
+                                    <ul class="list-group list-group-flush">
+                                        @foreach (var scope in Model.Scopes)
+                                        {
+
+                                            <li class="list-group-item">
+                                                <p>@scope.DisplayName</p>
+                                                <p>@scope.Discription</p>
+                                                <input type="hidden" value=@scope.ScopeName name="ConsentedScopes[]">
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        }
+                        Will you allow the client to use this scopes?
+                        <br />
+                        <br />
+                        <button type="submit" value="yes" class="btn btn-primary" name="Consented">Yes.</button>
+                        <button type="submit" value="no" class="btn btn-warning" name="Consented">No.</button>
+                        <input type="hidden" value=@Model.ReturnUrl name="ReturnUrl">
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

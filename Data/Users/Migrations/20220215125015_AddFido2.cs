@@ -3,12 +3,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace MyScimApp.Data.Users.Migrations
 {
-    public partial class AddFido2StoredCredential : Migration
+    public partial class AddFido2 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "fido2StoredCredentials",
+                name: "Fido2StoredCredential",
                 columns: table => new
                 {
                     Fido2StoredCredentialId = table.Column<int>(nullable: false)
@@ -25,14 +25,14 @@ namespace MyScimApp.Data.Users.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_fido2StoredCredentials", x => x.Fido2StoredCredentialId);
+                    table.PrimaryKey("PK_Fido2StoredCredential", x => x.Fido2StoredCredentialId);
                 });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "fido2StoredCredentials");
+                name: "Fido2StoredCredential");
         }
     }
 }

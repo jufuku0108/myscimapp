@@ -1,44 +1,65 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <UserSecretsId>2ac56536-7e1e-41f9-8990-89d5c84594a0</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Data\IdentityServer\Migrations\ConfigurationDb\20210908133411_VersionUp.cs" />
+    <Compile Remove="Data\IdentityServer\Migrations\ConfigurationDb\20210908133411_VersionUp.Designer.cs" />
     <Compile Remove="Data\Users\Migrations\20191129145214_AddScimUser.cs" />
     <Compile Remove="Data\Users\Migrations\20191129145214_AddScimUser.Designer.cs" />
+    <Compile Remove="Data\Users\Migrations\20191225151957_AddAccessLog.cs" />
+    <Compile Remove="Data\Users\Migrations\20191225151957_AddAccessLog.Designer.cs" />
     <Compile Remove="Data\Users\Migrations\20200119132723_AddAuthenticationCode.cs" />
     <Compile Remove="Data\Users\Migrations\20200119132723_AddAuthenticationCode.Designer.cs" />
     <Compile Remove="Data\Users\Migrations\20200119140256_AddAuthenticationCode.cs" />
     <Compile Remove="Data\Users\Migrations\20200119140256_AddAuthenticationCode.Designer.cs" />
     <Compile Remove="Data\Users\Migrations\20200201065615_UpdateScimGroup.cs" />
     <Compile Remove="Data\Users\Migrations\20200201065615_UpdateScimGroup.Designer.cs" />
+    <Compile Remove="Data\Users\Migrations\20211229134356_AddAcclogsAndFido2.cs" />
+    <Compile Remove="Data\Users\Migrations\20211229134356_AddAcclogsAndFido2.Designer.cs" />
+    <Compile Remove="Data\Users\Migrations\20220214131537_ModifyAccessLogs.cs" />
+    <Compile Remove="Data\Users\Migrations\20220214131537_ModifyAccessLogs.Designer.cs" />
+    <Compile Remove="Data\Users\Migrations\20220323135346_AddSaml2ServiceProvider.cs" />
+    <Compile Remove="Data\Users\Migrations\20220323135346_AddSaml2ServiceProvider.Designer.cs" />
+    <Compile Remove="Data\Users\Migrations\20220323140224_AddSaml2ServiceProvider.cs" />
+    <Compile Remove="Data\Users\Migrations\20220323140224_AddSaml2ServiceProvider.Designer.cs" />
+    <Compile Remove="Data\Users\Migrations\20221012140827_Tmp.cs" />
+    <Compile Remove="Data\Users\Migrations\20221012140827_Tmp.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Fido2" Version="1.1.0" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.2.2" />
+    <PackageReference Include="Azure.Identity" Version="1.7.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.4.0" />
+    <PackageReference Include="Fido2" Version="2.0.2" />
+    <PackageReference Include="IdentityModel" Version="6.0.0" />
     <PackageReference Include="IdentityServer4.AccessTokenValidation" Version="3.0.1" />
-    <PackageReference Include="IdentityServer4.AspNetIdentity" Version="3.0.2" />
-    <PackageReference Include="IdentityServer4.EntityFramework" Version="3.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="3.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="3.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="3.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Twitter" Version="3.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.AzureKeyVault.HostingStartup" Version="2.0.4" />
+    <PackageReference Include="IdentityServer4.AspNetIdentity" Version="4.1.2" />
+    <PackageReference Include="IdentityServer4.EntityFramework" Version="4.1.2" />
+    <PackageReference Include="ITfoxtec.Identity.Saml2" Version="4.8.6" />
+    <PackageReference Include="ITfoxtec.Identity.Saml2.MvcCore" Version="4.8.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="3.1.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="3.1.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="3.1.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Twitter" Version="3.1.18" />
     <PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="3.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.0" />
-    <PackageReference Include="Microsoft.Azure.KeyVault.Core" Version="3.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="3.1.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.18" />
     <PackageReference Include="Microsoft.Azure.Services.AppAuthentication" Version="1.3.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.0.1">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.18">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.0.0" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.18" />
+    <PackageReference Include="Microsoft.Graph" Version="3.1.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.43.2" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.5" />
+    <PackageReference Include="System.Text.Json" Version="6.0.1" />
   </ItemGroup>
 
   <ItemGroup>

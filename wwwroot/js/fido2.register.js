@@ -1,6 +1,6 @@
-window.onload = function(){
-    document.getElementById('register').addEventListener('submit', handleRegisterSubmit);
-}
+window.addEventListener("load", function () {
+    document.getElementById('register').addEventListener('click', handleRegisterSubmit);
+})
 
 async function handleRegisterSubmit(event) {
     event.preventDefault();

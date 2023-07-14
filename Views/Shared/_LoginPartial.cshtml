@@ -6,18 +6,22 @@
         @if (SignInManager.IsSignedIn(User))
         {
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="" asp-controller="AccountManage" asp-action="Index">Hello @User.Identity.Name !</a>
+            <a class="nav-link text-dark" asp-area="" asp-controller="AccountManage" asp-action="MyProfile">Hello @User.Identity.Name !</a>
         </li>
-            <li class="nav-item">
-                <form class="form-inline" action="/Account/Logout">
-                    <button type="submit" class="nav-link btn btn-link text-dark">Logout</button>
-                </form>
-            </li>
+        <li class="nav-item">
+            <form class="form-inline" action="/Account/Logout">
+                <button type="submit" class="nav-link btn btn-link text-dark">Logout</button>
+            </form>
+        </li>
         }
         else
         {
-            <li class="nav-item">@Html.ActionLink("Register", "Register", "Account", routeValues: null, htmlAttributes: new { id = "registerLink" })</li>
-            <li>&nbsp;&nbsp;&nbsp;&nbsp;</li>
-            <li class="nav-item">@Html.ActionLink("Log in", "Login", "Account", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
+            <li class="nav-item">
+                <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Register">Register</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Login">Login</a>
+            </li>
+
         }
     </ul>

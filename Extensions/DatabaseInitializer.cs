@@ -53,7 +53,7 @@ namespace MyScimApp.Extensions
             using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
             {
                 var context = serviceScope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
-                if (!context.Clients.Any())
+                if (!context.Clients.AsQueryable().Where(c => c.Description == "System").Any())
                 {
                     foreach(var client in IdentityServerConfig.GetClients(app))
                     {
@@ -71,9 +71,17 @@ namespace MyScimApp.Extensions
                 }
                 if (!context.ApiResources.Any())
                 {
-                    foreach(var resource in IdentityServerConfig.GetApiResources())
+                    foreach(var resource in IdentityServerConfig.GetApiResources(app))
                     {
                         context.ApiResources.Add(resource.ToEntity());
+                    }
+                    context.SaveChanges();
+                }
+                if (!context.ApiScopes.Any())
+                {
+                    foreach(var scope in IdentityServerConfig.GetApiScopes())
+                    {
+                        context.ApiScopes.Add(scope.ToEntity());
                     }
                     context.SaveChanges();
                 }

@@ -1,0 +1,86 @@
+﻿@model MyScimApp.Models.Saml2ConfigurationViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <title>Saml2 SP Login</title>
+    
+    <link href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/css/bootstrap-social.css" />
+    <link rel="stylesheet" href="~/css/customlayout.css" />
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+  
+</head>
+<body>
+
+    <!-- Modal HTML -->
+    <div id="myModal">
+        <div class="modal-dialog modal-login">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Saml2 Login</h4>
+                </div>
+                <div class="modal-body">
+                    <form action="/Saml2/SpLogin" method="post" class="form-inline">
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                        @Html.AntiForgeryToken()
+
+
+                        <label>EntityId/Audience/Issuer</label>
+                        <div class="form-group" style="display:block">
+                            <input type="text" id="entityid" value=@Model?.EntityId name="entityid" class="form-control">
+                        </div>
+                        <br />
+                        <label>Binding Mode</label>
+                        <div class="form-group" style="display:block">
+                            <select type="text" id="bindingmode" value=@Model?.BindingMode name="bindingmode" class="form-control">
+                                <option>Redirect</option> 
+                                <option>Post</option> 
+                            </select>
+                        </div>
+                        <br />
+                        <label>NameId Format</label>
+                        <div class="form-group" style="display:block">
+                            <select type="text" id="nameidformat" value=@Model?.NameIdFormat name="nameidformat" class="form-control">
+                                <option>EmailAddress</option> 
+                                <option>X509SubjectName</option> 
+                                <option>WindowsDomainQualifiedName</option> 
+                                <option>Kerberos</option> 
+                                <option>Persistent</option> 
+                                <option>Transient</option> 
+                                <option>Encrypted</option> 
+                                <option>Unspecified</option> 
+                            </select>
+                        </div>
+                        <br />
+
+                        <label>IdP MetadataUrl</label>
+                        <div class="form-group" style="display:block">
+                            <input type="text" id="idpmetadataurl" value=@Model?.IdPMetadataUrl name="idpmetadataurl" class="form-control">
+                        </div>
+                        <br />
+                        <div class="form-group" style="display:block">
+                            <input type="submit" class="btn btn-primary" value="Login">
+                        </div>
+
+                    </form>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
