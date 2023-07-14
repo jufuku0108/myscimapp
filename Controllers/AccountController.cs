@@ -240,8 +240,11 @@ namespace MyScimApp.Controllers
                 var user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
                 var claims = await _userManager.GetClaimsAsync(user);
                 var exsistingsid = claims.Where(c => c.Type == "sid").FirstOrDefault();
+                if(exsistingsid != null)
+                {
+                    await _userManager.RemoveClaimAsync(user, exsistingsid);
+                }
                 var newsid = info.Principal.Claims.Where(c => c.Type == "sid").FirstOrDefault();
-                await _userManager.RemoveClaimAsync(user, exsistingsid);
                 await _userManager.AddClaimAsync(user, newsid);
                 await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
 
